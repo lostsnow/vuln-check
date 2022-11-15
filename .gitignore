@@ -30,4 +30,4 @@ Thumbs.db
 
 # Project files
 configs/app.yml
-
+/vuln-check
