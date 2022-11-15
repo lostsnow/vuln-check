@@ -27,7 +27,7 @@ var vulConvertCmd = &cobra.Command{
 }
 
 func init() {
-	vulConvertCmd.Flags().StringVar(&csv, "csv", "", "path of the csv file to be converted")
-	vulConvertCmd.Flags().StringVar(&yaml, "yaml", "", "file path to convert to yaml")
+	vulConvertCmd.Flags().StringVar(&csv, "csv", "./data/vuls.csv", "path of the csv file to be converted")
+	vulConvertCmd.Flags().StringVar(&yaml, "yaml", "./data/vuls.yaml", "file path to convert to yaml")
 	rootCmd.AddCommand(vulConvertCmd)
 }

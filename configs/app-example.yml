@@ -1,1 +1,33 @@
 # app main config
+log:
+  console:
+    encoder:
+      name: console
+      time-format: 2006-01-02T15:04:05
+    level: info
+    out: stdout
+  file:
+    encoder:
+      name: json
+      time-format: RFC3339
+    level: info
+    max-backups: 10
+    max-days: 7
+    # megabytes
+    max-size: 10
+    out: tmp/log/app.log
+    rotate: true
+  error:
+    encoder:
+      name: json
+      time-format: RFC3339
+    level: error
+    max-backups: 10
+    max-days: 7
+    # megabytes
+    max-size: 10
+    out: tmp/log/error.log
+    rotate: true
+log_handler: zap
+mysql:
+  dsn: "user:pass@tcp(localhost:3306)/dongtai_webapi?charset=utf8mb4&parseTime=True&loc=Local&timeout=5s"
