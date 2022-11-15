@@ -5,7 +5,9 @@ import (
 	"os"
 
 	"vuln-check/internal/config"
+	"vuln-check/internal/db"
 
+	"github.com/litsea/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -44,6 +46,10 @@ func initConfig() {
 		viper.WatchConfig()
 		config.SetDefault()
 		config.InitLogger()
+
+		if err := db.InitMySQL(); err != nil {
+			logger.Fatal(err)
+		}
 	} else {
 		fmt.Println(err)
 		os.Exit(1)

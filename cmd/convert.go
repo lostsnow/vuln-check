@@ -17,12 +17,13 @@ var vulConvertCmd = &cobra.Command{
 	Use:   "vulConvert",
 	Short: "Convert all vuls to yaml",
 	Run: func(cmd *cobra.Command, args []string) {
+		prefix := "[convert]"
 		total, err := vul.Convert(csv, yaml)
 		if err != nil {
-			logger.Errorf("vuls convert failed %w", err)
+			logger.Errorf("%s failed %w", prefix, err)
 			return
 		}
-		logger.Infof("vuls convert successfully: %d", total)
+		logger.Infof("%s successfully: %d", prefix, total)
 	},
 }
 
