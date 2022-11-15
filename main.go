@@ -1,7 +1,7 @@
 package main
 
 import (
-	"go-starter/cmd"
+	"vuln-check/cmd"
 )
 
 func main() {
