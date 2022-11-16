@@ -21,12 +21,13 @@ const (
 )
 
 type Vul struct {
-	App           string `yaml:"app"`
-	AppVersion    string `yaml:"appVersion"`
-	URLPath       string `yaml:"urlPath"`
-	VulType       string `yaml:"vulType"`
-	VulScanResult string `yaml:"vulScanResult"`
-	Description   string `yaml:"description"`
+	App          string `yaml:"app"`
+	AppVersion   string `yaml:"appVersion"`
+	URLPath      string `yaml:"urlPath"`
+	VulType      string `yaml:"vulType"`
+	ExpectResult string `yaml:"expectResult"`
+	ActualResult string `yaml:"actualResult"`
+	Description  string `yaml:"description"`
 }
 
 func ParseApp(s string) (string, error) {
@@ -45,22 +46,13 @@ func ParseApp(s string) (string, error) {
 	return app, nil
 }
 
-func IsNormalVal(vulType string) bool {
-	if vulType == CryptoBadCiphers ||
-			vulType == CryptoBadMac ||
-			vulType == CryptoWeakRandomness ||
-			vulType == CookieFlagsMissing {
-		return true
-	}
-	return false
-}
-
-func NormalizeUrlPathForBenchmark(app, vulType, path string) string {
-	if app != AppBenchmark {
-		return path
-	}
-	if !IsNormalVal(vulType) {
-		return path
+func NormalizeUrlPath(path string) string {
+	prefix := "org.owasp.benchmark.testcode."
+	if strings.HasPrefix(strings.ToLower(path), "/benchmark/") {
+		return path[strings.LastIndex(path, "/")+1:]
+	} else if strings.HasPrefix(strings.ToLower(path), prefix) {
+		l := len(prefix)
+		return path[l : l+18]
 	}
 
 	return path

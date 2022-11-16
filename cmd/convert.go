@@ -12,10 +12,11 @@ var (
 	yaml string
 )
 
+// ./vuln-check vulConvert
 // ./vuln-check vulConvert --csv ./data/vuls.csv --yaml ./data/vuls.yaml
 var vulConvertCmd = &cobra.Command{
 	Use:   "vulConvert",
-	Short: "Convert all vuls to yaml",
+	Short: "Convert all vulnerabilities to yaml",
 	Run: func(cmd *cobra.Command, args []string) {
 		prefix := "[convert]"
 		total, err := vul.Convert(csv, yaml)

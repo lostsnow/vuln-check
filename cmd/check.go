@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"vuln-check/internal/vul"
@@ -14,12 +15,14 @@ var (
 	yamlToCheck string
 	vulApp      string
 	projectId   int64
+	outFile     string
 )
 
-// ./vuln-check check --yaml ./data/vuls.yaml
+// ./vuln-check check --app benchmark --project-id 200
+// ./vuln-check check --yaml ./data/vuls.yaml --out ./data/vuls.md --app benchmark --project-id 200
 var checkCmd = &cobra.Command{
 	Use:   "check",
-	Short: "Check all vuls by yaml",
+	Short: "Check all vulnerabilities by yaml",
 	Run: func(cmd *cobra.Command, args []string) {
 		prefix := "[check]"
 		app, err := vul.ParseApp(vulApp)
@@ -27,6 +30,18 @@ var checkCmd = &cobra.Command{
 			logger.Errorf("%s ParseApp failed: %s", prefix, err)
 			return
 		}
+
+		f, err := os.Create(outFile)
+		if err != nil {
+			logger.Error(fmt.Errorf("create/open out file %s failed: %w", outFile, err))
+			return
+		}
+		defer func(f *os.File) {
+			err := f.Close()
+			if err != nil {
+				logger.Error(fmt.Errorf("close out file %s failed: %w", outFile, err))
+			}
+		}(f)
 
 		vulMap, err := vul.ParseVulYaml(yaml, app)
 		if err != nil {
@@ -56,47 +71,102 @@ var checkCmd = &cobra.Command{
 		}
 		logger.Infof("%s get scan result successful: %d", prefix, len(scanResultMap))
 
-		checkResult, err := vul.Check(vulMap, scanResultMap)
+		checkResults, err := vul.Check(vulMap, scanResultMap)
 		if err != nil {
 			logger.Errorf("%s Check failed: %s", prefix, err)
 			return
 		}
 
-		builder := &strings.Builder{}
-		fmt.Println("==========================================================")
-		formatVul(builder, app, vul.ScanOK, checkResult.MatchedVuls)
-		formatVul(builder, app, vul.ScanMissing, checkResult.MissingResult)
-		formatScanResult(builder, app, vul.ScanWrong, checkResult.WrongScanResults)
-		formatVul(builder, app, vul.ScanNone, checkResult.NoneVuls)
-		formatVul(builder, app, vul.ScanNoSupport, checkResult.NoSupportVuls)
-		fmt.Println(builder.String())
-		fmt.Println("==========================================================")
-
-		logger.Infof("%s successfully", prefix)
+		out := formatResult(checkResults)
+		_, err = f.WriteString(out)
+		if err != nil {
+			logger.Errorf("%s write check result to %s failed: %s", prefix, outFile, err)
+			return
+		}
+		logger.Infof("%s write check result to %s successful", prefix, outFile)
 	},
 }
 
-func formatVul(builder *strings.Builder, app, t string, vs []vul.Vul) {
-	builder.WriteString("## " + t + "\n\n")
-	for _, v := range vs {
-		path := vul.NormalizeUrlPathForBenchmark(app, v.VulType, v.URLPath)
-		builder.WriteString("* [" + t + "] " + path + ": " + v.VulType + "\n")
-	}
-	builder.WriteString("\n")
-}
+func formatResult(vs []vul.CheckResult) string {
+	sb := &strings.Builder{}
+	sb.WriteString("# Vulnerability Scan Report\n\n")
+	sb.WriteString("Expect Result:\n\n")
+	sb.WriteString("* Yes: 有漏洞\n")
+	sb.WriteString("* No: 无漏洞\n")
+	sb.WriteString("* Unknown: 待确认\n\n")
+	sb.WriteString("Actual Result:\n\n")
+	sb.WriteString("* OK: 正常检出\n")
+	sb.WriteString("* Missing: 漏报\n")
+	sb.WriteString("* Wrong: 误报\n")
+	sb.WriteString("* NoSupport: 不支持\n")
+	sb.WriteString("* NoConfirm: 待确认\n\n")
+	sb.WriteString("Expect Status:\n\n")
+	sb.WriteString("* 😁: 检测正常\n")
+	sb.WriteString("* 😰: 检测有误\n")
+	sb.WriteString("* 😇: 未知\n\n")
+	sb.WriteString("Check Status:\n\n")
+	sb.WriteString("* ✅: 正常\n")
+	sb.WriteString("* ❌: 异常\n")
+	sb.WriteString("* ❓: 待确认\n\n")
+	sb.WriteString("| Path | VulType | Expect | Actual | Description |\n")
+	sb.WriteString("| ---- | ------- | ------ | ------ | ----------- |\n")
 
-func formatScanResult(builder *strings.Builder, app, t string, vs []vul.ScanResult) {
-	builder.WriteString("## " + t + "\n\n")
+	wrongSb := &strings.Builder{}
+	wrongSb.WriteString("## Wrong\n\n")
+	wrongSb.WriteString("| Path | VulType | Actual | Description |\n")
+	wrongSb.WriteString("| ---- | ------- | ------ | ----------- |\n")
+
 	for _, v := range vs {
-		path := vul.NormalizeUrlPathForBenchmark(app, v.VulType, v.URLPath)
-		builder.WriteString("* [" + t + "] " + path + ": " + v.VulType + "\n")
+		if v.ActualResult != vul.ActualWrong {
+			sb.WriteString("| ")
+			sb.WriteString(v.UrlPath)
+			sb.WriteString(" | ")
+			sb.WriteString(v.VulType)
+			sb.WriteString(" | ")
+			if v.ActualResult == vul.ActualOK {
+				sb.WriteString("😁")
+			} else if v.ActualResult == vul.ActualNoConfirm {
+				sb.WriteString("😇")
+			} else {
+				sb.WriteString("😰")
+			}
+			sb.WriteString(v.ExpectResult)
+			sb.WriteString(" | ")
+			if v.ActualResult == vul.ActualNoConfirm {
+				sb.WriteString("❓")
+			} else if v.ActualResult != v.OriginActualResult {
+				sb.WriteString("❌")
+			} else {
+				sb.WriteString("✅")
+			}
+			sb.WriteString(v.ActualResult)
+			sb.WriteString(" | ")
+			sb.WriteString(v.Description)
+			sb.WriteString(" |\n")
+		} else {
+			wrongSb.WriteString("| ")
+			wrongSb.WriteString(v.UrlPath)
+			wrongSb.WriteString(" | ")
+			wrongSb.WriteString(v.VulType)
+			wrongSb.WriteString(" | ")
+			wrongSb.WriteString("😰")
+			wrongSb.WriteString(v.ActualResult)
+			wrongSb.WriteString(" | ")
+			wrongSb.WriteString(v.Description)
+			wrongSb.WriteString(" |\n")
+		}
 	}
-	builder.WriteString("\n")
+	sb.WriteString("\n")
+	wrongSb.WriteString("\n")
+	sb.WriteString(wrongSb.String())
+
+	return sb.String()
 }
 
 func init() {
-	checkCmd.Flags().StringVar(&yamlToCheck, "yaml", "./data/vuls.yaml", "yaml file path to check vul")
-	checkCmd.Flags().StringVar(&vulApp, "app", "", "app to check vul (webgoat, benchmark, openrasp)")
-	checkCmd.Flags().Int64Var(&projectId, "project-id", 0, "project id to check vul")
+	checkCmd.Flags().StringVar(&yamlToCheck, "yaml", "./data/vuls.yaml", "yaml file path to check vulnerability")
+	checkCmd.Flags().StringVar(&vulApp, "app", "", "app to check vulnerability (webgoat, benchmark, openrasp)")
+	checkCmd.Flags().Int64Var(&projectId, "project-id", 0, "project id to check vulnerability")
+	checkCmd.Flags().StringVar(&outFile, "out", "./data/vuls.md", "file path to vulnerability check result")
 	rootCmd.AddCommand(checkCmd)
 }

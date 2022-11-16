@@ -30,7 +30,7 @@ func Convert(csvPath, yamlPath string) (int, error) {
 		if idx == 0 {
 			continue
 		}
-		if len(rd) != 6 {
+		if len(rd) != 7 {
 			return 0, fmt.Errorf("invalid record: %v", rd)
 		}
 
@@ -44,12 +44,13 @@ func Convert(csvPath, yamlPath string) (int, error) {
 		}
 
 		vul := Vul{
-			App:           appVersion[0],
-			AppVersion:    appVersion[1],
-			URLPath:       strings.TrimSpace(rd[2]),
-			VulType:       vulType,
-			VulScanResult: parseVulScanResult(rd[4]),
-			Description:   rd[5],
+			App:          appVersion[0],
+			AppVersion:   appVersion[1],
+			URLPath:      strings.TrimSpace(rd[2]),
+			VulType:      vulType,
+			ExpectResult: parseExpectResult(rd[4]),
+			ActualResult: parseActualResult(rd[5]),
+			Description:  rd[6],
 		}
 		vuls = append(vuls, vul)
 	}
@@ -72,7 +73,8 @@ func toYaml(vuls []Vul, yamlPath string) error {
 			`  appVersion: "` + vul.AppVersion + "\"\n" +
 			`  urlPath: "` + vul.URLPath + "\"\n" +
 			`  vulType: "` + vul.VulType + "\"\n" +
-			`  vulScanResult: "` + vul.VulScanResult + "\"\n" +
+			`  expectResult: "` + vul.ExpectResult + "\"\n" +
+			`  actualResult: "` + vul.ActualResult + "\"\n" +
 			`  description: "` + vul.Description + "\"\n")
 		_, err2 := f.Write(p)
 		if err2 != nil {
@@ -143,19 +145,28 @@ func parseVulType(v string) string {
 	}
 }
 
-func parseVulScanResult(result string) string {
+func parseExpectResult(result string) string {
 	switch result {
-	case "正常检出":
-		return ScanOK
-	case "漏报":
-		return ScanMissing
-	case "误报":
-		return ScanWrong
-	case "无漏洞/无法利用":
-		return ScanNone
-	case "不支持":
-		return ScanNoSupport
+	case "是":
+		return ExpectYes
+	case "否":
+		return ExpectNo
 	default:
-		return ScanNoConfirm
+		return ExpectUnknown
+	}
+}
+
+func parseActualResult(result string) string {
+	switch result {
+	case "正常":
+		return ActualOK
+	case "漏报":
+		return ActualMissing
+	case "误报":
+		return ActualWrong
+	case "不支持":
+		return ActualNoSupport
+	default:
+		return ActualNoConfirm
 	}
 }

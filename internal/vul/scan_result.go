@@ -12,12 +12,17 @@ import (
 )
 
 const (
-	ScanOK        = "OK"
-	ScanMissing   = "Missing"
-	ScanWrong     = "Wrong"
-	ScanNone      = "None"
-	ScanNoSupport = "NoSupport"
-	ScanNoConfirm = "NoConfirm"
+	ExpectYes     = "Yes"
+	ExpectNo      = "No"
+	ExpectUnknown = "Unknown"
+)
+
+const (
+	ActualOK        = "OK"
+	ActualMissing   = "Missing"
+	ActualWrong     = "Wrong"
+	ActualNoSupport = "NoSupport"
+	ActualNoConfirm = "NoConfirm"
 )
 
 type ScanResult struct {
@@ -88,17 +93,28 @@ func GetScanResults(agentId int64, vulTypeMap map[int64]string) (map[string]Scan
 		if !ok {
 			vulType = "unknown"
 		}
+
+		// no url
+		if vulType == "Response Without X-Content-Type-Options Header" ||
+			vulType == "Pages Without Anti-Clickjacking Controls" ||
+			vulType == "Response With Insecurely Configured Strict-Transport-Security Header" ||
+			vulType == "Response With X-XSS-Protection Disabled" ||
+			vulType == "Response Without Content-Security-Policy Header" {
+			continue
+		}
+
+		path := NormalizeUrlPath(v.Uri)
 		r := ScanResult{
 			Id:      v.Id,
-			URLPath: v.Uri,
+			URLPath: path,
 			VulType: vulType,
 		}
 
-		key := v.Uri + "::" + vulType
+		key := path + "::" + vulType
 		if _, ok = m[key]; !ok {
 			m[key] = r
 		} else {
-			logger.Warnf("some uri %s and vul type %s has multiple vulnerabilities", v.Uri, vulType)
+			logger.Warnf("some uri %s and vul type %s has multiple vulnerabilities in scan result", v.Uri, vulType)
 		}
 	}
 
