@@ -21,7 +21,7 @@ var vulConvertCmd = &cobra.Command{
 		prefix := "[convert]"
 		total, err := vul.Convert(csv, yaml)
 		if err != nil {
-			logger.Errorf("%s failed %w", prefix, err)
+			logger.Errorf("%s failed: %s", prefix, err)
 			return
 		}
 		logger.Infof("%s successfully: %d", prefix, total)

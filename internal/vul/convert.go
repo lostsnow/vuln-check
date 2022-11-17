@@ -136,6 +136,8 @@ func parseVulType(v string) string {
 		return "trust-boundary-violation"
 	case "身份认证":
 		return "身份认证"
+	case "CSRF":
+		return "csrf"
 	case "敏感信息泄露":
 		return "手机号码泄漏"
 	case "":

@@ -16,6 +16,7 @@ type CheckResult struct {
 	ActualResult       string
 	OriginActualResult string
 	Description        string
+	ExtraWrong         bool
 }
 
 func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckResult, error) {
@@ -61,6 +62,7 @@ func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckR
 				VulType:      v.VulType,
 				ExpectResult: ExpectNo,
 				ActualResult: ActualWrong,
+				ExtraWrong:   true,
 			})
 		}
 	}

@@ -15,11 +15,11 @@ var (
 	yamlToCheck string
 	vulApp      string
 	projectId   int64
-	outFile     string
+	outDir      string
 )
 
-// ./vuln-check check --app benchmark --project-id 200
-// ./vuln-check check --yaml ./data/vuls.yaml --out ./data/vuls.md --app benchmark --project-id 200
+// ./vuln-check check --app benchmark --project-id 206
+// ./vuln-check check --yaml ./data/vuls.yaml --out ./data --app benchmark --project-id 200
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check all vulnerabilities by yaml",
@@ -31,6 +31,10 @@ var checkCmd = &cobra.Command{
 			return
 		}
 
+		if outDir[len(outDir)-1:] == "/" {
+			outDir = outDir[:len(outDir)-1]
+		}
+		outFile := outDir + "/vuls-" + app + ".md"
 		f, err := os.Create(outFile)
 		if err != nil {
 			logger.Error(fmt.Errorf("create/open out file %s failed: %w", outFile, err))
@@ -112,12 +116,12 @@ func formatResult(vs []vul.CheckResult) string {
 	sb.WriteString("| ---- | ------- | ------ | ------ | ----------- |\n")
 
 	wrongSb := &strings.Builder{}
-	wrongSb.WriteString("## Wrong\n\n")
+	wrongSb.WriteString("## Extra Wrong\n\n")
 	wrongSb.WriteString("| Path | VulType | Actual | Description |\n")
 	wrongSb.WriteString("| ---- | ------- | ------ | ----------- |\n")
 
 	for _, v := range vs {
-		if v.ActualResult != vul.ActualWrong {
+		if !v.ExtraWrong {
 			sb.WriteString("| ")
 			sb.WriteString(v.UrlPath)
 			sb.WriteString(" | ")
@@ -167,6 +171,6 @@ func init() {
 	checkCmd.Flags().StringVar(&yamlToCheck, "yaml", "./data/vuls.yaml", "yaml file path to check vulnerability")
 	checkCmd.Flags().StringVar(&vulApp, "app", "", "app to check vulnerability (webgoat, benchmark, openrasp)")
 	checkCmd.Flags().Int64Var(&projectId, "project-id", 0, "project id to check vulnerability")
-	checkCmd.Flags().StringVar(&outFile, "out", "./data/vuls.md", "file path to vulnerability check result")
+	checkCmd.Flags().StringVar(&outDir, "out", "./data", "output file dir to vulnerability check result")
 	rootCmd.AddCommand(checkCmd)
 }
