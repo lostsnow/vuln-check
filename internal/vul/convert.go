@@ -121,6 +121,8 @@ func parseVulType(v string) string {
 		return "xpath-injection"
 	case "JNI注入":
 		return "dynamic-library-load"
+	case "JNDI注入":
+		return "JNDI注入"
 	case "HQL注入":
 		return "hql-injection"
 	case "不安全的反序列化":
@@ -138,6 +140,8 @@ func parseVulType(v string) string {
 		return "身份认证"
 	case "CSRF":
 		return "csrf"
+	case "硬编码":
+		return "硬编码"
 	case "敏感信息泄露":
 		return "手机号码泄漏"
 	case "":
@@ -168,6 +172,8 @@ func parseActualResult(result string) string {
 		return ActualWrong
 	case "不支持":
 		return ActualNoSupport
+	case "间接":
+		return ActualIndirect
 	default:
 		return ActualNoConfirm
 	}

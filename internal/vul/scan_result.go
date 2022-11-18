@@ -21,6 +21,7 @@ const (
 	ActualOK        = "OK"
 	ActualMissing   = "Missing"
 	ActualWrong     = "Wrong"
+	ActualIndirect  = "Indirect"
 	ActualNoSupport = "NoSupport"
 	ActualNoConfirm = "NoConfirm"
 )

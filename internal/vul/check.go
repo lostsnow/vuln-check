@@ -9,6 +9,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var (
+	indirectVul = map[string]struct{}{
+		"java.util.Random.nextBytes(Random.java:229)": {},
+		"sun.security.rsa.MGF1.<init>(MGF1.java:47)":  {},
+	}
+)
+
 type CheckResult struct {
 	UrlPath            string
 	VulType            string
@@ -20,12 +27,14 @@ type CheckResult struct {
 }
 
 func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckResult, error) {
-	var results []CheckResult
+	results := make([]CheckResult, 0)
 
 	for k, v := range vulMap {
 		var r string
 		_, exists := scanResultMap[k]
-		if v.ExpectResult == ExpectYes {
+		if v.ActualResult == ActualIndirect {
+			r = ActualIndirect
+		} else if v.ExpectResult == ExpectYes {
 			if exists {
 				r = ActualOK
 			} else {
@@ -57,6 +66,9 @@ func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckR
 
 	for k, v := range scanResultMap {
 		if _, ok := vulMap[k]; !ok {
+			if _, isIndirect := indirectVul[v.URLPath]; isIndirect {
+				continue
+			}
 			results = append(results, CheckResult{
 				UrlPath:      v.URLPath,
 				VulType:      v.VulType,
@@ -88,7 +100,6 @@ func ParseVulYaml(yamlPath, app string) (map[string]Vul, error) {
 		return nil, fmt.Errorf("unmarshal yaml file %s failed: %w", yamlPath, err)
 	}
 
-	// fmt.Println(vs)
 	m := make(map[string]Vul, len(vs))
 	for _, v := range vs {
 		if app != strings.ToLower(v.App) {

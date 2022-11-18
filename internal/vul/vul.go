@@ -6,12 +6,13 @@ import (
 )
 
 const (
-	None                 = "none"
-	CmdInjection         = "cmd-injection"
-	CryptoWeakRandomness = "crypto-weak-randomness"
-	CryptoBadCiphers     = "crypto-bad-ciphers"
-	CryptoBadMac         = "crypto-bad-mac"
-	CookieFlagsMissing   = "cookie-flags-missing"
+	None                  = "none"
+	CmdInjection          = "cmd-injection"
+	CryptoWeakRandomness  = "crypto-weak-randomness"
+	CryptoBadCiphers      = "crypto-bad-ciphers"
+	CryptoBadMac          = "crypto-bad-mac"
+	CookieFlagsMissing    = "cookie-flags-missing"
+	SensitiveDataExposure = "手机号码泄漏"
 )
 
 const (

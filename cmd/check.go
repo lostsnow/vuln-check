@@ -106,7 +106,9 @@ func formatResult(vs []vul.CheckResult) string {
 	sb.WriteString("* NoConfirm: 待确认\n\n")
 	sb.WriteString("Expect Status:\n\n")
 	sb.WriteString("* 😁: 检测正常\n")
-	sb.WriteString("* 😰: 检测有误\n")
+	sb.WriteString("* 😡: 检测有误\n")
+	sb.WriteString("* 🙃: 间接漏洞\n")
+	sb.WriteString("* 😶: 不支持\n")
 	sb.WriteString("* 😇: 未知\n\n")
 	sb.WriteString("Check Status:\n\n")
 	sb.WriteString("* ✅: 正常\n")
@@ -129,10 +131,14 @@ func formatResult(vs []vul.CheckResult) string {
 			sb.WriteString(" | ")
 			if v.ActualResult == vul.ActualOK {
 				sb.WriteString("😁")
+			} else if v.ActualResult == vul.ActualIndirect {
+				sb.WriteString("🙃")
+			} else if v.ActualResult == vul.ActualNoSupport {
+				sb.WriteString("😶")
 			} else if v.ActualResult == vul.ActualNoConfirm {
 				sb.WriteString("😇")
 			} else {
-				sb.WriteString("😰")
+				sb.WriteString("😡")
 			}
 			sb.WriteString(v.ExpectResult)
 			sb.WriteString(" | ")
@@ -153,7 +159,7 @@ func formatResult(vs []vul.CheckResult) string {
 			wrongSb.WriteString(" | ")
 			wrongSb.WriteString(v.VulType)
 			wrongSb.WriteString(" | ")
-			wrongSb.WriteString("😰")
+			wrongSb.WriteString("😡")
 			wrongSb.WriteString(v.ActualResult)
 			wrongSb.WriteString(" | ")
 			wrongSb.WriteString(v.Description)
