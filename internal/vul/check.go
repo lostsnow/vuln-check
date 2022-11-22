@@ -4,15 +4,19 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
+	"vuln-check/internal/datasource/header_vulnerability"
+	"vuln-check/internal/db"
+
+	"github.com/litsea/logger"
 	"gopkg.in/yaml.v3"
 )
 
 var (
 	indirectVul = map[string]struct{}{
-		"java.util.Random.nextBytes(Random.java:229)": {},
-		"sun.security.rsa.MGF1.<init>(MGF1.java:47)":  {},
+		"sun.security.rsa.MGF1.<init>(MGF1.java:47)": {},
 	}
 )
 
@@ -29,12 +33,13 @@ type CheckResult struct {
 func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckResult, error) {
 	results := make([]CheckResult, 0)
 
+	missingNormalVulIds := make([]string, 0)
+	missingNormalVuls := make([]CheckResult, 0)
+
 	for k, v := range vulMap {
 		var r string
 		_, exists := scanResultMap[k]
-		if v.ActualResult == ActualIndirect {
-			r = ActualIndirect
-		} else if v.ExpectResult == ExpectYes {
+		if v.ExpectResult == ExpectYes {
 			if exists {
 				r = ActualOK
 			} else {
@@ -54,20 +59,31 @@ func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckR
 			r = ActualNoConfirm
 		}
 
-		results = append(results, CheckResult{
-			UrlPath:            v.URLPath,
-			VulType:            v.VulType,
-			ExpectResult:       v.ExpectResult,
-			ActualResult:       r,
-			OriginActualResult: v.ActualResult,
-			Description:        v.Description,
-		})
+		if r == ActualMissing && NeedCheckUriRelation(v.VulType) {
+			missingNormalVuls = append(missingNormalVuls, CheckResult{
+				UrlPath:            v.URLPath,
+				VulType:            v.VulType,
+				ExpectResult:       v.ExpectResult,
+				ActualResult:       r,
+				OriginActualResult: v.ActualResult,
+				Description:        v.Description,
+			})
+		} else {
+			results = append(results, CheckResult{
+				UrlPath:            v.URLPath,
+				VulType:            v.VulType,
+				ExpectResult:       v.ExpectResult,
+				ActualResult:       r,
+				OriginActualResult: v.ActualResult,
+				Description:        v.Description,
+			})
+		}
 	}
 
 	for k, v := range scanResultMap {
 		if _, ok := vulMap[k]; !ok {
-			if _, isIndirect := indirectVul[v.URLPath]; isIndirect {
-				continue
+			if NeedCheckUriRelation(v.VulType) {
+				missingNormalVulIds = append(missingNormalVulIds, strconv.FormatInt(v.Id, 10))
 			}
 			results = append(results, CheckResult{
 				UrlPath:      v.URLPath,
@@ -76,6 +92,32 @@ func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckR
 				ActualResult: ActualWrong,
 				ExtraWrong:   true,
 			})
+		}
+	}
+
+	if len(missingNormalVulIds) > 0 {
+		filters := make(map[string]interface{})
+		filters["vul_id"] = strings.Join(missingNormalVulIds, ",")
+		query := &db.MySQLQuery{
+			Where:  "vul_id IN (@vul_id)",
+			Args:   filters,
+			Fields: []string{"id", "url"},
+		}
+		hVuls, err := header_vulnerability.GetHeaderVulnerabilities(query)
+		if err != nil {
+			logger.Error(err)
+		} else {
+			hVulMap := make(map[string]struct{})
+			for _, hVul := range hVuls {
+				path := NormalizeUrlPath(hVul.Url)
+				hVulMap[path] = struct{}{}
+			}
+			for _, missingNormalVul := range missingNormalVuls {
+				if _, ok := hVulMap[missingNormalVul.UrlPath]; ok {
+					missingNormalVul.ActualResult = ActualOK
+				}
+				results = append(results, missingNormalVul)
+			}
 		}
 	}
 

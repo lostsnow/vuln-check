@@ -47,6 +47,17 @@ func ParseApp(s string) (string, error) {
 	return app, nil
 }
 
+func NeedCheckUriRelation(vulType string) bool {
+	if vulType == CookieFlagsMissing ||
+		vulType == SensitiveDataExposure ||
+		vulType == CryptoWeakRandomness ||
+		vulType == CryptoBadMac ||
+		vulType == CryptoBadCiphers {
+		return true
+	}
+	return false
+}
+
 func NormalizeUrlPath(path string) string {
 	prefix := "org.owasp.benchmark.testcode."
 	if strings.HasPrefix(strings.ToLower(path), "/benchmark/") {

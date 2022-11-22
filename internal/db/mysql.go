@@ -15,7 +15,7 @@ var (
 
 type MySQLQuery struct {
 	Where  string
-	Args   map[string]interface{}
+	Args   interface{}
 	Fields []string
 	Order  string
 	Limit  int
