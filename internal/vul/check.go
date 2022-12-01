@@ -30,7 +30,7 @@ type CheckResult struct {
 	ExtraWrong         bool
 }
 
-func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckResult, error) {
+func Check(vulMap map[string]Vul, scanResultMap map[string][]ScanResult) ([]CheckResult, error) {
 	results := make([]CheckResult, 0)
 
 	missingNormalVulIds := make([]string, 0)
@@ -80,10 +80,14 @@ func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckR
 		}
 	}
 
-	for k, v := range scanResultMap {
-		if _, ok := vulMap[k]; !ok {
+	for k, vs := range scanResultMap {
+		if _, ok := vulMap[k]; ok {
+			continue
+		}
+		for _, v := range vs {
 			if NeedCheckUriRelation(v.VulType) {
 				missingNormalVulIds = append(missingNormalVulIds, strconv.FormatInt(v.Id, 10))
+				continue
 			}
 			results = append(results, CheckResult{
 				UrlPath:      v.URLPath,
@@ -96,11 +100,8 @@ func Check(vulMap map[string]Vul, scanResultMap map[string]ScanResult) ([]CheckR
 	}
 
 	if len(missingNormalVulIds) > 0 {
-		filters := make(map[string]interface{})
-		filters["vul_id"] = strings.Join(missingNormalVulIds, ",")
 		query := &db.MySQLQuery{
-			Where:  "vul_id IN (@vul_id)",
-			Args:   filters,
+			Where:  "vul_id IN (" + strings.Join(missingNormalVulIds, ",") + ")",
 			Fields: []string{"id", "url"},
 		}
 		hVuls, err := header_vulnerability.GetHeaderVulnerabilities(query)

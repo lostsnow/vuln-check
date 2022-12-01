@@ -74,7 +74,7 @@ func GetVulTypeMap() (map[int64]string, error) {
 	return m, nil
 }
 
-func GetScanResults(agentId int64, vulTypeMap map[int64]string) (map[string]ScanResult, error) {
+func GetScanResults(agentId int64, vulTypeMap map[int64]string) (map[string][]ScanResult, error) {
 	filters := make(map[string]interface{})
 	filters["agent_id"] = agentId
 	query := &db.MySQLQuery{
@@ -88,7 +88,7 @@ func GetScanResults(agentId int64, vulTypeMap map[int64]string) (map[string]Scan
 		return nil, err
 	}
 
-	m := make(map[string]ScanResult, len(vs))
+	m := make(map[string][]ScanResult, len(vs))
 	for _, v := range vs {
 		vulType, ok := vulTypeMap[v.StrategyId]
 		if !ok {
@@ -113,9 +113,10 @@ func GetScanResults(agentId int64, vulTypeMap map[int64]string) (map[string]Scan
 
 		key := path + "::" + vulType
 		if _, ok = m[key]; !ok {
-			m[key] = r
+			m[key] = []ScanResult{r}
 		} else {
-			logger.Warnf("some uri %s and vul type %s has multiple vulnerabilities in scan result", v.Uri, vulType)
+			m[key] = append(m[key], r)
+			logger.Warnf("some uri %d %s and vul type %s has multiple vulnerabilities in scan result", v.Id, v.Uri, vulType)
 		}
 	}
 
