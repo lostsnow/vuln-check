@@ -51,7 +51,11 @@ func Check(vulMap map[string]Vul, scanResultMap map[string][]ScanResult) ([]Chec
 			}
 		} else if v.ExpectResult == ExpectNo {
 			if exists {
-				r = ActualWrong
+				if v.ActualResult == ActualNoSupport {
+					r = ActualNoSupport
+				} else {
+					r = ActualWrong
+				}
 			} else {
 				r = ActualOK
 			}

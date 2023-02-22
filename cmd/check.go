@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"html"
 	"os"
 	"strings"
 
@@ -151,7 +152,7 @@ func formatResult(vs []vul.CheckResult) string {
 			}
 			sb.WriteString(v.ActualResult)
 			sb.WriteString(" | ")
-			sb.WriteString(v.Description)
+			sb.WriteString(html.EscapeString(strings.TrimSpace(v.Description)))
 			sb.WriteString(" |\n")
 		} else {
 			wrongSb.WriteString("| ")
@@ -162,7 +163,7 @@ func formatResult(vs []vul.CheckResult) string {
 			wrongSb.WriteString("😡")
 			wrongSb.WriteString(v.ActualResult)
 			wrongSb.WriteString(" | ")
-			wrongSb.WriteString(v.Description)
+			wrongSb.WriteString(html.EscapeString(strings.TrimSpace(v.Description)))
 			wrongSb.WriteString(" |\n")
 		}
 	}

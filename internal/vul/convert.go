@@ -69,13 +69,19 @@ func toYaml(vuls []Vul, yamlPath string) error {
 	}
 
 	for _, vul := range vuls {
+		var d string
+		if vul.Description == "" {
+			d = `  description: ""`
+		} else {
+			d = "  description: |\n    " + vul.Description
+		}
 		p := []byte(`- app: "` + vul.App + "\"\n" +
 			`  appVersion: "` + vul.AppVersion + "\"\n" +
 			`  urlPath: "` + vul.URLPath + "\"\n" +
 			`  vulType: "` + vul.VulType + "\"\n" +
 			`  expectResult: "` + vul.ExpectResult + "\"\n" +
 			`  actualResult: "` + vul.ActualResult + "\"\n" +
-			`  description: "` + vul.Description + "\"\n")
+			d + "\n")
 		_, err2 := f.Write(p)
 		if err2 != nil {
 			return fmt.Errorf("write %v to yaml file %s failed: %w", vul, yamlPath, err)
